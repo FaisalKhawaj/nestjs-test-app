@@ -1,23 +1,23 @@
 
 ## Description
-1. Architecture & Structure
+## 1. Architecture & Structure
 
 Express: Gives you a blank canvas. You decide folder structure, how to organize controllers, services, etc.
 
 NestJS: Comes with a modular architecture out of the box (controllers, services, modules), which enforces separation of concerns.
 
-2.TypeScript First
+## 2.TypeScript First
 Express: TypeScript support is possible, but not native — you must configure types yourself and manually manage typing for routes, middleware, etc.
 
 
 NestJS: Written in TypeScript, with decorators and DI patterns built to leverage type safety. Less boilerplate for TS.
 
-3. Dependency Injection (DI)
+## 3. Dependency Injection (DI)
 Express: No DI system; you manually pass dependencies around.
 
 
 NestJS: Has a built-in DI container, similar to Angular or Spring Boot, making testing and code reuse much easier.
-
+```bash
 // userService.js
 class UserService {
   getUsers() {
@@ -84,8 +84,9 @@ import { UserService } from './user.service';
   providers: [UserService], // tells NestJS to manage this dependency
 })
 export class AppModule {}
+```
 __________
-4. Built-in Features
+## 4. Built-in Features
 NestJS ships with integrations and patterns for:
 Validation (class-validator + class-transformer)
 
@@ -137,29 +138,7 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
-## Test
 
-```bash
-# unit tests
-$ npm run test
 
-# e2e tests
-$ npm run test:e2e
 
-# test coverage
-$ npm run test:cov
-```
 
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](LICENSE).
