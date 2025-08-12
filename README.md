@@ -115,8 +115,50 @@ With Express, you add and wire these up manually.
 ____________________
 
 
+## Validations 
+ Validations are done through pipes. can be done at global level or specific method controller level
 
+### 1. @useGlobalPipes()
 
+Scope: Applies to every request in the entire application — controllers, routes, guards, interceptors, everything.
+
+When to use: When you want the same validation logic for all DTOs, without repeating yourself.
+
+Where: In main.ts at bootstrap time.
+
+### Pros:
+
+Centralized configuration.
+No need to add @UsePipes() everywhere.
+Automatically applies to all endpoints
+
+### Cons:
+
+Less granular — if one route needs different settings, you must override it at method or controller level..
+___
+
+### 2.@UsePipes
+Scope: Only applies to the method or controller it decorates.
+
+### When to use:
+If you want custom settings for a specific route/controller.
+If you don’t want validation to run globally.
+
+At method level:
+
+```bash
+@Post()
+@UsePipes(new ValidationPipe({ whitelist: false }))
+createUser(@Body() dto: CreateUserDto) {}
+```
+
+At controller level:
+
+```bash
+@UsePipes(new ValidationPipe({ whitelist: true }))
+@Controller('users')
+export class UsersController {}
+```
 
 
 ## Installation
