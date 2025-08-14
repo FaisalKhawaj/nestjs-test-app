@@ -159,7 +159,84 @@ At controller level:
 @Controller('users')
 export class UsersController {}
 ```
+______________________
 
+## DTO VS Entity
+
+### DTO (Data transfer object)
+Purpose: Define the shape of incoming/outgoing data.
+
+Usage: Used in controllers/services to validate and control what data is sent or accepted.
+
+Contains: Validation rules, API docs metadata.
+
+Decorators: class-validator (@IsString(), @IsEmail(), etc.), Swagger decorators (@ApiProperty()).
+
+Not tied to the database: Purely for API contract.
+
+```bash
+import { IsEmail, IsNotEmpty, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+
+export class CreateUserDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  fullName: string;
+
+  @ApiProperty()
+  @IsEmail()
+  email: string;
+
+  @ApiProperty()
+  @MinLength(6)
+  password: string;
+}
+
+```
+
+### Entities
+
+Purpose: Map your code to database tables (ORM models).
+
+Usage: Used by TypeORM to create, read, update, delete data.
+
+Contains: Table name, columns, relations, indexes, etc.
+
+Decorators: @Entity(), @Column(), @PrimaryGeneratedColumn(), etc.
+
+Coupled to the database: Directly represents the DB schema.
+
+```bash
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity('users')
+export class User {
+  @PrimaryGeneratedColumn('uuid', { comment: 'The user unique identifier' })
+  id: number;
+
+  @Column()
+  fullName: string;
+
+  @Column({ unique: true })
+  email: string;
+
+  @Column()
+  password: string; // stored hashed in DB
+}
+```
+_________
+
+### Typical NestJS Data Flow
+
+Client (Frontend) → Controller → Service → Repository → Database
+
+Controller: Handles incoming HTTP requests and sends responses. It does not contain business logic.
+
+Service: Contains the business logic. Calls the repository to fetch, insert, or update data.
+
+Repository: Handles direct database communication via TypeORM. It maps your Entity (User) to the actual database table.
+
+Database: Your actual persistence layer (PostgreSQL, MySQL, etc.).
 
 ## Installation
 

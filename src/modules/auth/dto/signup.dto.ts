@@ -9,7 +9,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { Gender } from 'src/enums/enums';
+import { Gender } from 'src/common/enums/enums';
 
 export class SignupDto {
   @ApiProperty({
