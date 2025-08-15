@@ -2,12 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { AuthDto } from './dto/auth.dto';
 import { UserService } from '../users/users.service';
 import { SignupDto } from './dto/signup.dto';
-import { UserRepository } from '../users/user.repository';
-import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/entities/user.entity';
-import { DataSource, Repository } from 'typeorm';
 import {
-  EMAIL_ALREADY_EXIST_RESPONSE,
   INTERNAL_SERVER_ERROR_RESPONSE,
   OTP_VERIFY_SUCCESS,
   SUCCESSFUL_RESPONSE,
@@ -15,12 +10,12 @@ import {
   WRONG_OTP,
 } from 'src/common/constants/http-responses.types';
 import { Helper } from 'src/utils/helper';
-import { MailerService } from 'src/shared/mailer/mailer.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { JwtPayload } from 'src/common/interface/Jwt.interface';
 import { NewPasswordDto } from './dto/set-new-password.dto';
+import { User } from 'src/entities/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -48,9 +43,10 @@ export class AuthService {
     }
   }
 
+  //sign In api
   async signIn(body: AuthDto) {
     console.log('body', body);
-    const user = await this.userService.getByUserByEmail(body.email);
+    const user = await this.userService.getUserByEmail(body.email);
     if (!user) {
       throw new HttpException('Invalid email/password', HttpStatus.NOT_FOUND);
     }
@@ -84,6 +80,7 @@ export class AuthService {
     };
   }
 
+  //creating new user  api
   async signUp(body: SignupDto) {
     const user = await this.userService.register(body);
     console.log('useruser:', user);
@@ -101,6 +98,7 @@ export class AuthService {
     };
   }
 
+  //verifying new user with otp
   async verifyEmail(body: VerifyOtpDto) {
     try {
       const response = await this.userService.verifyEmail(body);
@@ -112,7 +110,7 @@ export class AuthService {
       );
     }
   }
-
+  //resending new  otp
   async resendOtpCode(email: string) {
     try {
       const response = await this.userService.resendOtpCode(email);
@@ -125,6 +123,7 @@ export class AuthService {
     }
   }
 
+  //forgot password api
   async forgetPassword(email: string) {
     try {
       const response = await this.userService.forgotPassword(email);
@@ -137,9 +136,10 @@ export class AuthService {
     }
   }
 
+  //verify otp for forgot password
   async verifyForgetPasswordOtp(body: VerifyOtpDto) {
     const { email, otpCode } = body;
-    const user = await this.userService.getByUserByEmail(email);
+    const user = await this.userService.getUserByEmail(email);
     if (!user) {
       throw new HttpException(
         USER_NOT_FOUND_RESPONSE.message,
@@ -164,8 +164,11 @@ export class AuthService {
     };
   }
 
+  // resetting password for forgot password flow
   async resetPassword(body: NewPasswordDto) {
     const res = await this.userService.resetPassword(body);
     return res;
   }
+
+  //
 }

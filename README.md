@@ -238,6 +238,37 @@ Repository: Handles direct database communication via TypeORM. It maps your Enti
 
 Database: Your actual persistence layer (PostgreSQL, MySQL, etc.).
 
+
+
+### FindOneBy vs FindOne
+findOne({ where: { id: userId } })
+Accepts a full FindOneOptions object, meaning you can:
+
+Add relations (eager load related entities like userProfile)
+
+Add select (choose which fields to return)
+
+Add order, cache, etc.
+
+```bash
+const user = await this.userRepo.findOne({ where: { id: userId },
+ relations: { userProfile: true },
+  select: { id: true, email: true },
+});
+```
+Downside: Slightly more overhead since TypeORM has to process options.
+______
+
+findOneBy({ id: userId })
+Simpler and faster — directly translates to a SQL WHERE clause.
+
+Can only filter
+```bash
+const user = await this.userRepo.findOneBy({ id: userId });
+```
+
+
+
 ## Installation
 
 ```bash

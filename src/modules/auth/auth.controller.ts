@@ -4,7 +4,6 @@ import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthDto } from './dto/auth.dto';
 import { SignupDto } from './dto/signup.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
-import { UserService } from '../users/users.service';
 import { NewPasswordDto } from './dto/set-new-password.dto';
 
 @Controller('auth')

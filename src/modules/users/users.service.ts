@@ -1,8 +1,12 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   EMAIL_ALREADY_EXIST_RESPONSE,
+  INTERNAL_SERVER_ERROR_RESPONSE,
   INVALID_OTP,
+  NOT_FOUND_RESPONSE,
+  OLD_PASSWORD_INVALID,
+  OPERATION_FAILED_RESPONSE,
   OTP_EXPIRED,
   OTP_SEND_SUCCESS,
   USER_NOT_FOUND_RESPONSE,
@@ -17,6 +21,8 @@ import { VerifyOtpDto } from '../auth/dto/verify-otp.dto';
 import { buildResendOtpEmail } from 'src/common/templates/resend-otp.template';
 import { buildForgotPasswordEmail } from 'src/common/templates/forgot-password.template';
 import { NewPasswordDto } from '../auth/dto/set-new-password.dto';
+import { UserProfile } from 'src/entities/user.profile.entity';
+import { ChangePasswordDto } from './dto/update-password.dto';
 
 @Injectable()
 export class UserService {
@@ -31,8 +37,11 @@ export class UserService {
     return 'sss';
   }
 
-  async getByUserByEmail(email: string) {
-    const user = await this.userRepo.findOne({ where: { email } });
+  async getUserByEmail(email: string) {
+    const user = await this.userRepo.findOne({
+      where: { email },
+      relations: { userProfile: true },
+    });
     return user;
     // const user=await th
   }
@@ -65,12 +74,8 @@ export class UserService {
         const otpExpiry = new Date();
         const user = new User();
         user.password = password;
-        user.fullName = fullName;
         user.userName = userName;
-        user.gender = gender;
         user.email = email;
-        user.dateOfBirth = dateOfBirth;
-        user.phoneNumber = phoneNumber;
 
         otpExpiry.setMinutes(otpExpiry.getMinutes() + 10);
         user.otpCode = otpCode;
@@ -78,7 +83,15 @@ export class UserService {
         user.country = country;
         user.state = state;
         user.city = city;
-        await entityManager.save([user]);
+        const userProfile = new UserProfile();
+        userProfile.fullName = fullName;
+        userProfile.gender = gender;
+        userProfile.dateOfBirth = dateOfBirth;
+        userProfile.phoneNumber = phoneNumber;
+        user.userProfile = userProfile;
+        await entityManager.save(user); // cascade will save profile too
+
+        // await entityManager.save([user, userProfile]);
 
         await this.mailService.sendMail(
           email,
@@ -93,14 +106,21 @@ export class UserService {
         );
         return await entityManager.findOne(User, {
           where: { email },
-          // relations: {
-          //   userProfile: true,
-          // },
+          relations: {
+            userProfile: true,
+          },
           select: {
             id: true,
             email: true,
             userName: true,
-            dateOfBirth: true,
+            userProfile: {
+              id: true,
+              fullName: true,
+              gender: true,
+              dateOfBirth: true,
+              profileImage: true,
+              coverImage: true,
+            },
             country: true,
             state: true,
             city: true,
@@ -253,5 +273,89 @@ export class UserService {
       enumerable: false,
     });
   }
+
   //
+  async findOne(userId: string): Promise<User> {
+    const user = await this.userRepo.findOne({
+      where: { id: userId },
+      relations: {
+        userProfile: true,
+      },
+    });
+    if (!user) {
+      throw new HttpException(
+        USER_NOT_FOUND_RESPONSE.message,
+        USER_NOT_FOUND_RESPONSE.status,
+      );
+    }
+    return Object.defineProperty(user, 'password', {
+      enumerable: false,
+    });
+  }
+
+  async softDeleteUser(userId: string) {
+    const result = await this.userRepo.softDelete(userId);
+    if (!result || !result.affected) {
+      throw new HttpException(
+        NOT_FOUND_RESPONSE.message,
+        NOT_FOUND_RESPONSE.status,
+      );
+    }
+    return;
+  }
+
+  async deleteUser(userId: string) {
+    const result = await this.userRepo.delete(userId);
+    if (!result || !result.affected) {
+      throw new HttpException(
+        NOT_FOUND_RESPONSE.message,
+        NOT_FOUND_RESPONSE.status,
+      );
+    }
+    return;
+  }
+
+  async updateUserPassword(body: ChangePasswordDto, userId: string) {
+    const user = await this.userRepo.findOneBy({ id: userId });
+    if (!user) {
+      throw new HttpException(
+        USER_NOT_FOUND_RESPONSE.message,
+        USER_NOT_FOUND_RESPONSE.status,
+      );
+    }
+    const isMatch = await Helper.comparePassword(
+      body.oldPassword,
+      user.password,
+    );
+    if (!isMatch) {
+      throw new HttpException(
+        OLD_PASSWORD_INVALID.message,
+        OLD_PASSWORD_INVALID.status,
+      );
+    }
+    if (body.oldPassword === body.newPassword) {
+      throw new HttpException(
+        'New password cannot be same as old password',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const hashedNewPass = await Helper.hashPassword(body.newPassword);
+    try {
+      const updatedResult = await this.userRepo.update(userId, {
+        password: hashedNewPass,
+      });
+      if (updatedResult.affected === 0) {
+        throw new HttpException(
+          OPERATION_FAILED_RESPONSE.message,
+          OPERATION_FAILED_RESPONSE.status,
+        );
+      }
+      return { message: 'Password updated successfully' }; // Good to send confirmation
+    } catch (error) {
+      throw new HttpException(
+        INTERNAL_SERVER_ERROR_RESPONSE.message,
+        INTERNAL_SERVER_ERROR_RESPONSE.status,
+      );
+    }
+  }
 }

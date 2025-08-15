@@ -1,20 +1,25 @@
-import { Gender } from 'src/common/enums/enums';
-import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  BeforeInsert,
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  OneToOne,
+} from 'typeorm';
 import Model from './base.entity';
+import { Helper } from 'src/utils/helper';
+import { UserProfile } from './user.profile.entity';
 
 @Entity('users')
 export class User extends Model {
-  @Column({ type: 'text' })
-  fullName: string;
-
   @Column({ nullable: false, unique: true }) // the column cannot contain NULL values.
   email: string;
 
-  @Column({ nullable: false })
-  password: string;
-
   @Column({ nullable: true, name: 'user_name' })
   userName: string;
+
+  @Column({ nullable: false })
+  password: string;
 
   @Column({
     name: 'otp_code',
@@ -24,20 +29,6 @@ export class User extends Model {
     default: null,
   })
   otpCode: string;
-
-  @Column({ type: 'enum', enum: Gender, nullable: false })
-  gender: Gender;
-
-  @Column({ type: 'date', nullable: false })
-  dateOfBirth: string;
-
-  @Column({
-    name: 'phone_number',
-    type: 'varchar',
-    length: 20,
-    nullable: false,
-  })
-  phoneNumber: string;
 
   @Column({
     name: 'otp_expiry',
@@ -83,4 +74,24 @@ export class User extends Model {
 
   @Column({ name: 'is_verified', default: false })
   isVerified: boolean;
+
+  @BeforeInsert()
+  async hashPassword() {
+    if (this.password) {
+      this.password = await Helper.hashPassword(this.password);
+    }
+  }
+
+  @OneToOne(() => UserProfile, (userProfile) => userProfile.user, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  userProfile: UserProfile;
+
+  @ManyToMany(() => User, (user) => user.followers)
+  @JoinTable() // Only on one side of the relationship
+  following: User[];
+
+  @ManyToMany(() => User, (user) => user.following)
+  followers: User[];
 }
