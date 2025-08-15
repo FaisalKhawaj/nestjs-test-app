@@ -1,7 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { HttpStatus, ValidationPipe } from '@nestjs/common';
+import { setupSwagger } from './swagger-setup';
+import { globalPrefix } from './common/constants/env';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
   //  NestFactory.create: It creates a new Nest application instance,
@@ -13,6 +15,7 @@ async function bootstrap() {
     bufferLogs: true,
   });
   app.enableCors({ origin: '*', credentials: true });
+  app.setGlobalPrefix(globalPrefix);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -24,14 +27,9 @@ async function bootstrap() {
       stopAtFirstError: true,
     }),
   );
-  const config = new DocumentBuilder()
-    .setTitle('test  example')
-    .setDescription('The cats API description')
-    .setVersion('1.0')
-    .addTag('test')
-    .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, documentFactory);
+  app.useGlobalInterceptors(new LoggingInterceptor());
+
+  setupSwagger(app);
 
   await app.listen(3000);
 }

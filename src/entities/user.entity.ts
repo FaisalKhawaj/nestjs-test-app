@@ -2,20 +2,24 @@ import {
   BeforeInsert,
   Column,
   Entity,
-  JoinTable,
-  ManyToMany,
+  Index,
+  OneToMany,
   OneToOne,
 } from 'typeorm';
 import Model from './base.entity';
 import { Helper } from 'src/utils/helper';
 import { UserProfile } from './user.profile.entity';
+import { UserFollow } from './user.follow.entity';
 
 @Entity('users')
+@Index('idx_user_id', ['id'], { unique: true })
+@Index('idx_user_name', ['userName'], { unique: true })
+@Index('idx_user_email', ['email'], { unique: true })
 export class User extends Model {
   @Column({ nullable: false, unique: true }) // the column cannot contain NULL values.
   email: string;
 
-  @Column({ nullable: true, name: 'user_name' })
+  @Column({ nullable: true, name: 'user_name', unique: true })
   userName: string;
 
   @Column({ nullable: false })
@@ -88,10 +92,9 @@ export class User extends Model {
   })
   userProfile: UserProfile;
 
-  @ManyToMany(() => User, (user) => user.followers)
-  @JoinTable() // Only on one side of the relationship
-  following: User[];
+  @OneToMany(() => UserFollow, (follow) => follow.follower)
+  following: UserFollow[];
 
-  @ManyToMany(() => User, (user) => user.following)
-  followers: User[];
+  @OneToMany(() => UserFollow, (follow) => follow.following)
+  followers: UserFollow[];
 }

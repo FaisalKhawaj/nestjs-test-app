@@ -11,8 +11,8 @@ export class Helper {
   public static decrypt(encryptedToken: string): string {
     const decipher = crypto.createDecipheriv(
       'aes-256-cbc',
-      Buffer.from(process.env.ENCRYPTION_SECRET),
-      Buffer.from(process.env.ENCRYPTION_IV),
+      Buffer.from(process.env.ENCRYPTION_SECRET, 'base64'),
+      Buffer.from(process.env.ENCRYPTION_IV, 'base64'),
     );
     let decrypted = decipher.update(encryptedToken, 'hex', 'utf8');
     decrypted += decipher.final('utf8');

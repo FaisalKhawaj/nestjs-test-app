@@ -10,15 +10,25 @@ import {
   Patch,
   Post,
   Put,
+  Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Request } from 'express';
+
 import { UserService } from './users.service';
 import { ChangePasswordDto } from './dto/update-password.dto';
 import { JwtAuthGuard } from 'src/shared/guards/local-auth.guard';
 import { ApiSecurityAuth } from 'src/common/decorators/swagger.decorator';
 import { ApiErrorDecorator } from 'src/common/decorators/error.decorator';
 import { INTERNAL_SERVER_ERROR_RESPONSE } from 'src/common/constants/http-responses.types';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @ApiTags('Users')
 @ApiErrorDecorator(HttpStatus.BAD_REQUEST, 'Bad Request')
@@ -41,10 +51,23 @@ export class UsersController {
   constructor(private readonly userService: UserService) {} // DI
 
   // all users
-  @ApiOperation({ summary: 'All Users lists' })
-  @Get('/all-users')
-  getAllUsers(): string {
-    return this.userService.getAllUsers();
+  @ApiOperation({ summary: 'User listing' })
+  @ApiOkResponse()
+  @HttpCode(200)
+  @Get('/all')
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 10 })
+  findAll(@Req() req: Request, @Query() paginationDto: PaginationDto) {
+    const user = req.user;
+    return this.userService.findAll(user.id, paginationDto);
+  }
+
+  @ApiOperation({ summary: 'Get user details by Id' })
+  @ApiOkResponse()
+  @HttpCode(200)
+  @Get('/:id')
+  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.userService.findOne(id);
   }
 
   @ApiOperation({ summary: 'Update User Password' })

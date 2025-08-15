@@ -10,6 +10,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_FILTER } from '@nestjs/core';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { FollowModule } from './modules/follows/follow.modules';
 
 @Module({
   imports: [
@@ -29,6 +30,8 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
     AuthModule,
 
     UsersModule,
+
+    FollowModule,
   ],
   controllers: [AppController],
   providers: [

@@ -23,6 +23,8 @@ import { buildForgotPasswordEmail } from 'src/common/templates/forgot-password.t
 import { NewPasswordDto } from '../auth/dto/set-new-password.dto';
 import { UserProfile } from 'src/entities/user.profile.entity';
 import { ChangePasswordDto } from './dto/update-password.dto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { PaginationResponse } from 'src/common/dto/pagination-response.dto';
 
 @Injectable()
 export class UserService {
@@ -40,7 +42,7 @@ export class UserService {
   async getUserByEmail(email: string) {
     const user = await this.userRepo.findOne({
       where: { email },
-      relations: { userProfile: true },
+      relations: { userProfile: true, followers: false, following: false },
     });
     return user;
     // const user=await th
@@ -88,8 +90,9 @@ export class UserService {
         userProfile.gender = gender;
         userProfile.dateOfBirth = dateOfBirth;
         userProfile.phoneNumber = phoneNumber;
-        user.userProfile = userProfile;
-        await entityManager.save(user); // cascade will save profile too
+        userProfile.userId = user.id;
+        userProfile.user = user;
+        await entityManager.save([user, userProfile]); // cascade will save profile too
 
         // await entityManager.save([user, userProfile]);
 
@@ -117,6 +120,7 @@ export class UserService {
               id: true,
               fullName: true,
               gender: true,
+              userId: true,
               dateOfBirth: true,
               profileImage: true,
               coverImage: true,
@@ -302,6 +306,52 @@ export class UserService {
       );
     }
     return;
+  }
+
+  async findAll(
+    userId: string,
+    paginationDto: PaginationDto,
+  ): Promise<PaginationResponse<User>> {
+    const { limit, skip, page } = paginationDto;
+
+    const queryBuilder = this.userRepo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.userProfile', 'userProfile')
+      .where('user.id != :userId', { userId })
+      .select([
+        'user.id',
+        'user.email',
+        'user.userName',
+        'user.isActive',
+        'user.country',
+        'user.state',
+        'user.city',
+        'user.notificationEnabled',
+        'user.isBlocked',
+        'user.isVerified',
+        'user.createdAt',
+        'user.updatedAt',
+        'userProfile.id',
+        'userProfile.userId', // 👈 REQUIRED
+        'userProfile.fullName',
+        'userProfile.gender',
+        'userProfile.phoneNumber',
+        'userProfile.dateOfBirth',
+        'userProfile.profileImage',
+        'userProfile.coverImage',
+      ])
+      .skip(skip)
+      .take(limit)
+      .orderBy('user.createdAt', 'DESC');
+
+    const [result, total] = await queryBuilder.getManyAndCount();
+
+    const finalResponse = Helper.paginateResponse({
+      data: [result, total],
+      page,
+      limit,
+    });
+    return finalResponse;
   }
 
   async deleteUser(userId: string) {
