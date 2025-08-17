@@ -9,3 +9,10 @@ export enum FollowStatus {
   ACCEPTED = 'accepted',
   REJECTED = 'rejected',
 }
+
+export enum ContentTypes {
+  TEXT = 'text',
+  IMAGE = 'image',
+  VIDEO = 'video',
+  AUDIO = 'audio',
+}

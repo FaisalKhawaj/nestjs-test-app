@@ -11,6 +11,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_FILTER } from '@nestjs/core';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { FollowModule } from './modules/follows/follow.modules';
+import { MediaModule } from './modules/media/media.module';
+import { UserPostsModule } from './modules/user-posts/user-posts.module';
 
 @Module({
   imports: [
@@ -30,6 +32,10 @@ import { FollowModule } from './modules/follows/follow.modules';
     AuthModule,
 
     UsersModule,
+
+    MediaModule,
+
+    UserPostsModule,
 
     FollowModule,
   ],

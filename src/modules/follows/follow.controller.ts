@@ -11,9 +11,11 @@ import { FollowService } from './follow.service';
 import { ApiSecurityAuth } from 'src/common/decorators/swagger.decorator';
 import { JwtAuthGuard } from 'src/shared/guards/local-auth.guard';
 import { Request } from 'express';
+import { ApiTags } from '@nestjs/swagger';
 
 @Controller('follows')
 @ApiSecurityAuth()
+@ApiTags('User Follows')
 @UseGuards(JwtAuthGuard)
 export class FollowController {
   constructor(private readonly followService: FollowService) {}

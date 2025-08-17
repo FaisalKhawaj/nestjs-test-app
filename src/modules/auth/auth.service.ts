@@ -15,7 +15,6 @@ import { ConfigService } from '@nestjs/config';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { JwtPayload } from 'src/common/interface/Jwt.interface';
 import { NewPasswordDto } from './dto/set-new-password.dto';
-import { User } from 'src/entities/user.entity';
 
 @Injectable()
 export class AuthService {

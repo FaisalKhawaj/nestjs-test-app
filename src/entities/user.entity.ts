@@ -10,6 +10,9 @@ import Model from './base.entity';
 import { Helper } from 'src/utils/helper';
 import { UserProfile } from './user.profile.entity';
 import { UserFollow } from './user.follow.entity';
+import { UserPost } from './user.posts.entity';
+import { UserLike } from './userLike.entity';
+import { UserComment } from './userComments.entity';
 
 @Entity('users')
 @Index('idx_user_id', ['id'], { unique: true })
@@ -97,4 +100,22 @@ export class User extends Model {
 
   @OneToMany(() => UserFollow, (follow) => follow.following)
   followers: UserFollow[];
+
+  @OneToMany(() => UserPost, (userPost) => userPost.user, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  posts: UserPost[];
+
+  @OneToMany(() => UserLike, (like) => like.user, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  likes: UserLike[];
+
+  @OneToMany(() => UserComment, (comment) => comment.user, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  comments: UserComment[];
 }
