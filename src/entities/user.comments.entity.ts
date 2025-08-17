@@ -3,7 +3,7 @@ import Model from './base.entity';
 import { ContentTypes } from 'src/common/enums/enums';
 import { User } from './user.entity';
 
-@Entity('user-posts')
+@Entity('user_comments')
 export class UserPost extends Model {
   @Column({ name: 'user_id', nullable: true })
   userId: string;
