@@ -66,6 +66,17 @@ export class UserService {
         const isUser = await entityManager.findOne(User, {
           where: { email },
         });
+        const existingUser = await entityManager.findOne(User, {
+          where: [{ email }, { userName }],
+        });
+        if (existingUser) {
+          throw new HttpException(
+            existingUser.email === email
+              ? 'Email already exists'
+              : 'Username already exists',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
 
         if (isUser)
           throw new HttpException(

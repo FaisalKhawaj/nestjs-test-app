@@ -1,4 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserPost } from 'src/entities/user.posts.entity';
 import { Repository } from 'typeorm';
@@ -6,12 +11,20 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { PaginationResponse } from 'src/common/dto/pagination-response.dto';
 import { Helper } from 'src/utils/helper';
+import { UserLike } from 'src/entities/userLike.entity';
+import { CreateCommentDto } from './dto/create-comment.dto';
+import { UserComment } from 'src/entities/userComments.entity';
 
 @Injectable()
 export class UserPostsService {
   constructor(
     @InjectRepository(UserPost)
     private readonly postRepository: Repository<UserPost>,
+    @InjectRepository(UserLike)
+    private readonly postLikeRespository: Repository<UserLike>,
+
+    @InjectRepository(UserComment)
+    private readonly postCommentRepository: Repository<UserComment>,
   ) {}
 
   async createPost(payload: CreatePostDto): Promise<UserPost> {
@@ -24,8 +37,29 @@ export class UserPostsService {
     //
   }
 
-  async deleteAllPostUser(userId: string) {
-    await this.postRepository.delete({ userId: userId });
+  async deleteAllPostUser(userId: string, reqUserId) {
+    if (userId !== reqUserId) {
+      throw new UnauthorizedException('You can only delete your own posts');
+    }
+    if (userId === reqUserId)
+      await this.postRepository.delete({ userId: userId });
+    return {
+      statusCode: 200,
+      message: 'All posts deleted successfully.',
+    };
+  }
+
+  async deletePostUser(postId: string, userId: string) {
+    const post = await this.postRepository.findOne({ where: { id: postId } });
+    console.log('post', post);
+    if (!post) {
+      throw new NotFoundException(`Post not found`);
+    }
+    if (post.userId !== userId) {
+      throw new ForbiddenException('You are not allowed to delete this post');
+    }
+    await this.postRepository.delete({ id: postId });
+    return { message: 'Post deleted successfully', data: [] };
   }
 
   async getPosts({
@@ -110,47 +144,81 @@ export class UserPostsService {
     return finalResponse;
   }
 
-  // async getPosts({
-  //   skip,
-  //   limit,
-  //   page,
-  // }: PaginationDto): Promise<PaginationResponse<UserPost>> {
-  //   const qb = this.postRepository
-  //     .createQueryBuilder('post')
-  //     .leftJoinAndSelect('post.user', 'user')
-  //     .leftJoinAndSelect('user.userProfile', 'userProfile')
-  //     .leftJoinAndSelect('post.comments', 'comments')
-  //     .leftJoinAndSelect('post.likes', 'likes')
-  //     .select([
-  //       'post.id',
-  //       'post.content',
-  //       'post.contentType',
-  //       'post.commentsCount',
-  //       'post.likesCount',
-  //       'post.createdAt',
-  //       'post.updatedAt',
-  //       'user.id',
-  //       'user.userName',
-  //       'user.email',
-  //       'userProfile.id',
-  //       'userProfile.fullName',
-  //       'userProfile.coverImage',
-  //       'userProfile.profileImage',
-  //       // comments & likes are joined, you can select fields if needed
-  //       'comments.id',
-  //       'comments.content',
-  //       'likes.id',
-  //     ])
-  //     .orderBy('post.createdAt', 'DESC')
-  //     .skip(skip)
-  //     .take(limit);
+  //
+  async toggleLikePost(
+    postId,
+    requestUserId,
+  ): Promise<{ message: string; data: any }> {
+    const post = await this.postRepository.findOne({
+      where: { id: postId },
+      relations: { likes: true },
+    });
+    if (!post) throw new NotFoundException('Post not found');
+    const isLike = await this.postLikeRespository.findOne({
+      where: { postId: postId, userId: requestUserId },
+    });
+    // already liking a post
+    if (isLike) {
+      await this.postLikeRespository.delete({
+        postId: postId,
+        userId: requestUserId,
+      });
+      await this.postRepository.decrement({ id: postId }, 'likesCount', 1);
+      return { message: 'Post unliked successfully', data: null };
+    }
+    const newLike = this.postLikeRespository.create({
+      postId,
+      userId: requestUserId,
+    });
+    await this.postLikeRespository.save(newLike);
+    await this.postRepository.increment({ id: postId }, 'likesCount', 1);
+    return { message: 'Post liked successfully', data: null };
 
-  //   const [items, total] = await qb.getManyAndCount();
+    //
+  }
 
-  //   return Helper.paginateResponse({
-  //     data: [items, total],
-  //     page,
-  //     limit,
-  //   });
-  // }
+  async commentOnPost(
+    userId: string,
+    postId: string,
+    body: CreateCommentDto,
+  ): Promise<{ message: string; data: UserComment }> {
+    const { content, parentId } = body;
+
+    // 1. Validate post exists
+    const post = await this.postRepository.findOne({ where: { id: postId } });
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    // 2. If reply, validate parent comment exists
+    let parentComment: UserComment | null = null;
+    if (parentId) {
+      parentComment = await this.postCommentRepository.findOne({
+        where: { id: parentId, postId }, // ensures parent belongs to same post
+      });
+      if (!parentComment) {
+        throw new NotFoundException('Parent comment not found');
+      }
+    }
+
+    // 3. Create new comment
+    const newComment = this.postCommentRepository.create({
+      userId,
+      postId,
+      parentId: parentId || null,
+      content,
+    });
+
+    await this.postCommentRepository.save(newComment);
+
+    // 4. Increment post.commentsCount
+    await this.postRepository.increment({ id: postId }, 'commentsCount', 1);
+
+    return {
+      message: parentId
+        ? 'Reply added successfully'
+        : 'Comment added successfully',
+      data: newComment,
+    };
+  }
 }
